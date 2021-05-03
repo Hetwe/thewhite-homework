@@ -11,20 +11,23 @@ static struct MyData {
 };
 
 DWORD WINAPI ThreadFunctionClipboard(LPVOID);
-HANDLE CreateTextFile(std::string, std::string);
+HANDLE OpenMyFile(LPCWSTR, LPCWSTR);
 
 int main() {
-	HWND hWnd = GetForegroundWindow();
-	if (!OpenClipboard(hWnd)){
-		std::cout << "ERROR: невозможно открыть буфер обмена" << std::endl;
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
+	hWnd = GetForegroundWindow();
+
+	if (!OpenClipboard(hWnd)) {
+		std::cout << "ERROR: Невозможно открыть буфер обмена!";
 		return 1;
 	}
     EmptyClipboard(); 
 	
 	MyData data;
-	data.text = CreateTextFile("test.txt", "text");
+	data.text = OpenMyFile(L"text.txt", L"text");
 	data.number = 7;
-	data.bmp = CreateTextFile("file.bmp", "bmp");
+	data.bmp = OpenMyFile(L"file.bmp", L"bmp");
 	UINT format = RegisterClipboardFormat(L"CUSTOM");
 
 	HGLOBAL hGl = NULL;
@@ -41,9 +44,9 @@ int main() {
 	return 0;
 }
 
-HANDLE CreateTextFile(std::string pathToFile, std::string nameFile){
+HANDLE OpenMyFile(LPCWSTR pathToFile, LPCWSTR nameFile){
 	HANDLE hFile = CreateFileW(
-		fileName,
+		pathToFile,
 		GENERIC_READ,
 		FILE_SHARE_READ,
 		NULL,
@@ -69,7 +72,7 @@ HANDLE CreateTextFile(std::string pathToFile, std::string nameFile){
     	std::cout << "ERROR: Невозможно создать отражение в памяти!";
    	}
 	HANDLE pBuf = MapViewOfFile(
-		hTextMappingFile,
+		hMapFile,
 		FILE_MAP_READ,
 		0,
 		0,
@@ -77,7 +80,7 @@ HANDLE CreateTextFile(std::string pathToFile, std::string nameFile){
 	);
 	if (pBuf == NULL) 
    	{ 
-    	std::cout << "Представление проецированного файла не возможно!";
+    	std::cout << "Представление проецированного файла невозможно!";
    	}else{
 		return pBuf;   
 	}
@@ -87,10 +90,7 @@ DWORD WINAPI ThreadFunctionClipboard(LPVOID lParam) {
 	GetClientRect(hWnd, &rect);
 	UINT format = RegisterClipboardFormat(L"CUSTOM");
 	MyData data;
-	if (!OpenClipboard(hWnd)){
-		std::cout << "ERROR: невозможно открыть буфер обмена" << std::endl;
-		return 1;
-	}
+	OpenClipboard(hWnd);
 
 	HANDLE hData = GetClipboardData(format);
 	MyData* buffer = (MyData*)GlobalLock(hData);
@@ -120,5 +120,5 @@ DWORD WINAPI ThreadFunctionClipboard(LPVOID lParam) {
 	std::cout << "Number-" << data.number << std::endl;
 	std::cout << "Bmp-" << data.bmp << std::endl;
 	std::cin.get();
-	ExitProcess(0);
+	ExitThread(0);
 }
